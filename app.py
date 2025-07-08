@@ -66,13 +66,12 @@ if tab == "Data Visualization":
     with st.expander("Filter Data"):
         gender = st.multiselect("Gender", df["Gender"].unique())
         age = st.multiselect("Age Group", df["Age"].unique())
-        df_vis = df.copy()
-        if gender:
-            df_vis = df_vis[df_vis["Gender"].isin(gender)]
-        if age:
-            df_vis = df_vis[df_vis["Age"].isin(age)]
-    else:
-        df_vis = df.copy()
+
+    df_vis = df.copy()
+    if gender:
+        df_vis = df_vis[df_vis["Gender"].isin(gender)]
+    if age:
+        df_vis = df_vis[df_vis["Age"].isin(age)]
 
     st.subheader("1. Age Distribution")
     fig1 = px.histogram(df_vis, x="Age", color="Gender", barmode="group")
