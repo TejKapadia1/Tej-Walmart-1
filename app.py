@@ -3,20 +3,16 @@ import pandas as pd
 import numpy as np
 import os
 import plotly.express as px
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
-    confusion_matrix, roc_curve, auc
+    confusion_matrix, roc_curve
 )
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.cluster import KMeans
-
 from mlxtend.frequent_patterns import apriori, association_rules
 
 st.set_page_config(page_title="Consumer Survey Analytics Dashboard", layout="wide")
@@ -25,13 +21,22 @@ st.title("Consumer Survey Analytics Dashboard")
 # --- Data Load/Upload Section ---
 def load_data():
     uploaded_file = st.sidebar.file_uploader("Upload your CSV data", type=["csv"])
+    default_path = "data/synthetic_consumer_survey.csv"
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
-        st.sidebar.success("Data uploaded successfully!")
+        st.sidebar.success("Using uploaded file.")
         return df
-    elif os.path.exists("data/synthetic_consumer_survey.csv"):
-        df = pd.read_csv("data/synthetic_consumer_survey.csv")
-        st.sidebar.info("Loaded sample data from data/synthetic_consumer_survey.csv")
+    elif os.path.exists(default_path):
+        df = pd.read_csv(default_path)
+        st.sidebar.info(f"Using default data: {default_path}")
+        # Add sample CSV download button
+        with open(default_path, "rb") as file:
+            st.sidebar.download_button(
+                label="Download sample CSV",
+                data=file,
+                file_name="synthetic_consumer_survey.csv",
+                mime="text/csv"
+            )
         return df
     else:
         st.warning("No data file found. Please upload a CSV file to proceed.")
@@ -162,7 +167,9 @@ elif tab == "Classification":
         if hasattr(model, "predict_proba"):
             y_score = model.predict_proba(X_test)
             if y_score.shape[1] > 1:  # handle multiclass
-                fpr, tpr, _ = roc_curve(y_test, y_score[:, 1], pos_label=1)
+                from sklearn.preprocessing import label_binarize
+                y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
+                fpr, tpr, _ = roc_curve(y_test_bin[:, 0], y_score[:, 1])
                 fig.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=name))
     fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', line=dict(dash='dash'), showlegend=False))
     fig.update_layout(xaxis_title='False Positive Rate', yaxis_title='True Positive Rate', width=700, height=500)
