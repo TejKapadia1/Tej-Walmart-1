@@ -10,13 +10,11 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
-    confusion_matrix, roc_curve, auc,
-    mean_absolute_error, mean_squared_error, r2_score
+    confusion_matrix, roc_curve, auc
 )
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.cluster import KMeans
 
 from mlxtend.frequent_patterns import apriori, association_rules
@@ -52,8 +50,7 @@ tab = st.sidebar.radio(
         "Data Visualization",
         "Classification",
         "Clustering",
-        "Association Rule Mining",
-        "Regression Insights"
+        "Association Rule Mining"
     ]
 )
 
@@ -97,24 +94,13 @@ if tab == "Data Visualization":
     df_cats = df_vis["Frequent_Categories"].str.get_dummies(sep=",")
     st.bar_chart(df_cats.sum())
 
-    st.subheader("7. Correlation Heatmap")
-    # Select numeric columns (excluding categorical/ID)
-    numeric_cols = df_vis.select_dtypes(include=[np.number]).columns.tolist()
-    if len(numeric_cols) > 1:
-        corr = df_vis[numeric_cols].corr()
-        fig6, ax = plt.subplots()
-        sns.heatmap(corr, annot=True, cmap="Blues", ax=ax)
-        st.pyplot(fig6)
-    else:
-        st.info("Not enough numeric columns to show correlation heatmap. Add more numeric data to see meaningful correlations.")
-
-    st.subheader("8. Price Sensitivity by Age")
+    st.subheader("7. Price Sensitivity by Age")
     st.plotly_chart(px.histogram(df_vis, x="Price_Sensitivity", color="Age"))
 
-    st.subheader("9. Preferred Shop Time")
+    st.subheader("8. Preferred Shop Time")
     st.plotly_chart(px.histogram(df_vis, x="Preferred_Shop_Time", color="Gender"))
 
-    st.subheader("10. Download Current View")
+    st.subheader("9. Download Current View")
     st.download_button("Download Filtered Data", df_vis.to_csv(index=False), file_name="filtered_data.csv")
 
     st.write("More insights can be added based on use-case.")
@@ -260,45 +246,3 @@ elif tab == "Association Rule Mining":
         st.download_button("Download Rules", rules.to_csv(index=False), file_name="association_rules.csv")
     else:
         st.write("No rules found for selected parameters.")
-
-# --- Tab 5: Regression Insights ---
-elif tab == "Regression Insights":
-    st.header("Regression Insights: Predicting Satisfaction Score")
-
-    features = [
-        "Age", "Gender", "Income", "Education", "Employment",
-        "Online_Shop_Frequency", "Avg_Spend_Per_Order", "Device_Used"
-    ]
-    target = st.selectbox("Select Target for Regression", ["Satisfaction_1_10"])
-
-    df_reg = df[features + [target]].dropna().copy()
-    df_encoded = df_reg.copy()
-    for col in features:
-        le = LabelEncoder()
-        df_encoded[col] = le.fit_transform(df_encoded[col].astype(str))
-    X = df_encoded[features]
-    y = df_encoded[target]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    regressors = {
-        "Linear": LinearRegression(),
-        "Ridge": Ridge(),
-        "Lasso": Lasso(),
-        "Decision Tree": DecisionTreeRegressor()
-    }
-    results = []
-    for name, model in regressors.items():
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        results.append({
-            "Regressor": name,
-            "MAE": mean_absolute_error(y_test, y_pred),
-            "RMSE": np.sqrt(mean_squared_error(y_test, y_pred)),
-            "R2": r2_score(y_test, y_pred)
-        })
-        st.subheader(f"{name} Results: Actual vs. Predicted")
-        fig = px.scatter(x=y_test, y=y_pred, labels={'x':'Actual','y':'Predicted'}, trendline="ols")
-        st.plotly_chart(fig)
-    st.subheader("All Models Performance")
-    st.dataframe(pd.DataFrame(results).round(3))
-    st.write("These regression models help in understanding patterns for satisfaction or spend, identifying key drivers, and highlighting areas for improvement.")
