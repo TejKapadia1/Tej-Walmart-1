@@ -98,11 +98,15 @@ if tab == "Data Visualization":
     st.bar_chart(df_cats.sum())
 
     st.subheader("7. Correlation Heatmap")
-    num_cols = ["Satisfaction_1_10"]
-    corr = df_vis[num_cols].corr()
-    fig6, ax = plt.subplots()
-    sns.heatmap(corr, annot=True, cmap="Blues", ax=ax)
-    st.pyplot(fig6)
+    # Select numeric columns (excluding categorical/ID)
+    numeric_cols = df_vis.select_dtypes(include=[np.number]).columns.tolist()
+    if len(numeric_cols) > 1:
+        corr = df_vis[numeric_cols].corr()
+        fig6, ax = plt.subplots()
+        sns.heatmap(corr, annot=True, cmap="Blues", ax=ax)
+        st.pyplot(fig6)
+    else:
+        st.info("Not enough numeric columns to show correlation heatmap. Add more numeric data to see meaningful correlations.")
 
     st.subheader("8. Price Sensitivity by Age")
     st.plotly_chart(px.histogram(df_vis, x="Price_Sensitivity", color="Age"))
@@ -289,7 +293,7 @@ elif tab == "Regression Insights":
         results.append({
             "Regressor": name,
             "MAE": mean_absolute_error(y_test, y_pred),
-            "RMSE": mean_squared_error(y_test, y_pred, squared=False),
+            "RMSE": np.sqrt(mean_squared_error(y_test, y_pred)),
             "R2": r2_score(y_test, y_pred)
         })
         st.subheader(f"{name} Results: Actual vs. Predicted")
