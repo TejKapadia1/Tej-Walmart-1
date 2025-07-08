@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
 import plotly.express as px
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
@@ -24,11 +25,23 @@ st.set_page_config(page_title="Consumer Survey Analytics Dashboard", layout="wid
 st.title("Consumer Survey Analytics Dashboard")
 
 # --- Data Load/Upload Section ---
-uploaded_file = st.sidebar.file_uploader("Upload your CSV data", type=["csv"])
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-else:
-    df = pd.read_csv("data/synthetic_consumer_survey.csv")
+def load_data():
+    uploaded_file = st.sidebar.file_uploader("Upload your CSV data", type=["csv"])
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        st.sidebar.success("Data uploaded successfully!")
+        return df
+    elif os.path.exists("data/synthetic_consumer_survey.csv"):
+        df = pd.read_csv("data/synthetic_consumer_survey.csv")
+        st.sidebar.info("Loaded sample data from data/synthetic_consumer_survey.csv")
+        return df
+    else:
+        st.warning("No data file found. Please upload a CSV file to proceed.")
+        return None
+
+df = load_data()
+if df is None:
+    st.stop()
 
 st.sidebar.write(f"Data shape: {df.shape}")
 
@@ -53,50 +66,53 @@ if tab == "Data Visualization":
     with st.expander("Filter Data"):
         gender = st.multiselect("Gender", df["Gender"].unique())
         age = st.multiselect("Age Group", df["Age"].unique())
+        df_vis = df.copy()
         if gender:
-            df = df[df["Gender"].isin(gender)]
+            df_vis = df_vis[df_vis["Gender"].isin(gender)]
         if age:
-            df = df[df["Age"].isin(age)]
+            df_vis = df_vis[df_vis["Age"].isin(age)]
+    else:
+        df_vis = df.copy()
 
     st.subheader("1. Age Distribution")
-    fig1 = px.histogram(df, x="Age", color="Gender", barmode="group")
+    fig1 = px.histogram(df_vis, x="Age", color="Gender", barmode="group")
     st.plotly_chart(fig1, use_container_width=True)
 
     st.subheader("2. Income by Age Group")
-    fig2 = px.histogram(df, x="Income", color="Age")
+    fig2 = px.histogram(df_vis, x="Income", color="Age")
     st.plotly_chart(fig2, use_container_width=True)
 
     st.subheader("3. Online Shopping Frequency")
-    fig3 = px.histogram(df, x="Online_Shop_Frequency", color="Gender")
+    fig3 = px.histogram(df_vis, x="Online_Shop_Frequency", color="Gender")
     st.plotly_chart(fig3, use_container_width=True)
 
     st.subheader("4. Distribution of Satisfaction Scores")
-    fig4 = px.histogram(df, x="Satisfaction_1_10", nbins=10, color="Gender")
+    fig4 = px.histogram(df_vis, x="Satisfaction_1_10", nbins=10, color="Gender")
     st.plotly_chart(fig4, use_container_width=True)
 
     st.subheader("5. Main Purchase Factors")
-    fig5 = px.histogram(df, x="Main_Purchase_Factor", color="Gender")
+    fig5 = px.histogram(df_vis, x="Main_Purchase_Factor", color="Gender")
     st.plotly_chart(fig5, use_container_width=True)
 
     st.subheader("6. Frequent Categories (Association Ready)")
-    df_cats = df["Frequent_Categories"].str.get_dummies(sep=",")
+    df_cats = df_vis["Frequent_Categories"].str.get_dummies(sep=",")
     st.bar_chart(df_cats.sum())
 
     st.subheader("7. Correlation Heatmap")
     num_cols = ["Satisfaction_1_10"]
-    corr = df[num_cols].corr()
+    corr = df_vis[num_cols].corr()
     fig6, ax = plt.subplots()
     sns.heatmap(corr, annot=True, cmap="Blues", ax=ax)
     st.pyplot(fig6)
 
     st.subheader("8. Price Sensitivity by Age")
-    st.plotly_chart(px.histogram(df, x="Price_Sensitivity", color="Age"))
+    st.plotly_chart(px.histogram(df_vis, x="Price_Sensitivity", color="Age"))
 
     st.subheader("9. Preferred Shop Time")
-    st.plotly_chart(px.histogram(df, x="Preferred_Shop_Time", color="Gender"))
+    st.plotly_chart(px.histogram(df_vis, x="Preferred_Shop_Time", color="Gender"))
 
     st.subheader("10. Download Current View")
-    st.download_button("Download Filtered Data", df.to_csv(index=False), file_name="filtered_data.csv")
+    st.download_button("Download Filtered Data", df_vis.to_csv(index=False), file_name="filtered_data.csv")
 
     st.write("More insights can be added based on use-case.")
 
@@ -283,4 +299,3 @@ elif tab == "Regression Insights":
     st.subheader("All Models Performance")
     st.dataframe(pd.DataFrame(results).round(3))
     st.write("These regression models help in understanding patterns for satisfaction or spend, identifying key drivers, and highlighting areas for improvement.")
-
